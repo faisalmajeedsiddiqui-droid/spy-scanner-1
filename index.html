@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPY 0DTE Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07080f;
+    --surface: #0e1019;
+    --border: #1c1f2e;
+    --cyan: #00e5ff;
+    --gold: #ffd600;
+    --red: #ff3d57;
+    --green: #00e676;
+    --muted: #4a4f6a;
+    --text: #c8cde8;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Space Mono’, monospace;
+min-height: 100vh;
+color-scheme: dark;
+}
+
+body {
+max-width: 480px;
+margin: 0 auto;
+padding: 20px 16px 40px;
+}
+
+/* HEADER */
+.header {
+text-align: center;
+margin-bottom: 24px;
+padding-bottom: 16px;
+border-bottom: 1px solid var(–border);
+}
+
+.header h1 {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 2.8rem;
+letter-spacing: 4px;
+color: var(–cyan);
+line-height: 1;
+}
+
+.header .subtitle {
+font-size: 0.65rem;
+color: var(–muted);
+letter-spacing: 3px;
+margin-top: 4px;
+text-transform: uppercase;
+}
+
+.timestamp {
+font-size: 0.6rem;
+color: var(–muted);
+margin-top: 8px;
+}
+
+/* SCAN BUTTON */
+.scan-btn {
+width: 100%;
+padding: 16px;
+background: transparent;
+border: 2px solid var(–cyan);
+color: var(–cyan);
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 1.4rem;
+letter-spacing: 4px;
+cursor: pointer;
+transition: all 0.2s;
+margin-bottom: 20px;
+}
+
+.scan-btn:hover, .scan-btn:active {
+background: var(–cyan);
+color: var(–bg);
+}
+
+.scan-btn:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+}
+
+/* SIGNAL SCORE BOX */
+.score-box {
+border: 1px solid var(–border);
+background: var(–surface);
+padding: 20px;
+text-align: center;
+margin-bottom: 16px;
+position: relative;
+overflow: hidden;
+}
+
+.score-box::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: var(–cyan);
+}
+
+.score-label {
+font-size: 0.6rem;
+letter-spacing: 3px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 8px;
+}
+
+.score-number {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 5rem;
+line-height: 1;
+transition: color 0.3s;
+}
+
+.score-number.positive { color: var(–green); }
+.score-number.negative { color: var(–red); }
+.score-number.neutral  { color: var(–gold); }
+
+.score-verdict {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 1.4rem;
+letter-spacing: 3px;
+margin-top: 8px;
+}
+
+.score-verdict.trade   { color: var(–green); }
+.score-verdict.no-trade { color: var(–red); }
+.score-verdict.weak    { color: var(–gold); }
+
+.score-direction {
+font-size: 0.65rem;
+color: var(–muted);
+margin-top: 4px;
+letter-spacing: 2px;
+}
+
+/* DATA GRID */
+.section-title {
+font-size: 0.6rem;
+letter-spacing: 3px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 10px;
+margin-top: 16px;
+}
+
+.data-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+margin-bottom: 16px;
+}
+
+.data-card {
+background: var(–surface);
+border: 1px solid var(–border);
+padding: 12px;
+position: relative;
+}
+
+.data-card .label {
+font-size: 0.55rem;
+letter-spacing: 2px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 4px;
+}
+
+.data-card .value {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 1.5rem;
+color: var(–text);
+line-height: 1;
+}
+
+.data-card .change {
+font-size: 0.65rem;
+margin-top: 2px;
+}
+
+.data-card .sig-badge {
+position: absolute;
+top: 8px; right: 8px;
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 0.9rem;
+padding: 1px 6px;
+}
+
+.up   { color: var(–green); }
+.down { color: var(–red); }
+.flat { color: var(–muted); }
+
+.sig-pos { background: rgba(0,230,118,0.15); color: var(–green); border: 1px solid var(–green); }
+.sig-neg { background: rgba(255,61,87,0.15);  color: var(–red);   border: 1px solid var(–red); }
+.sig-zero { display: none; }
+
+/* ORDER TICKET */
+.order-ticket {
+background: var(–surface);
+border: 1px solid var(–border);
+padding: 16px;
+margin-bottom: 16px;
+}
+
+.order-ticket .ticket-header {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 1rem;
+letter-spacing: 3px;
+color: var(–cyan);
+margin-bottom: 12px;
+padding-bottom: 8px;
+border-bottom: 1px solid var(–border);
+}
+
+.ticket-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 5px 0;
+border-bottom: 1px solid var(–border);
+font-size: 0.7rem;
+}
+
+.ticket-row:last-child { border-bottom: none; }
+
+.ticket-row .tkey {
+color: var(–muted);
+letter-spacing: 1px;
+text-transform: uppercase;
+}
+
+.ticket-row .tval {
+color: var(–text);
+font-weight: 700;
+text-align: right;
+}
+
+.ticket-row .tval.buy  { color: var(–green); }
+.ticket-row .tval.sell { color: var(–red); }
+.ticket-row .tval.tp   { color: var(–gold); }
+
+/* RULES */
+.rules-box {
+background: var(–surface);
+border: 1px solid var(–border);
+padding: 14px;
+margin-bottom: 16px;
+}
+
+.rule-item {
+display: flex;
+align-items: flex-start;
+gap: 8px;
+font-size: 0.65rem;
+color: var(–muted);
+padding: 4px 0;
+line-height: 1.5;
+}
+
+.rule-item .dot {
+color: var(–cyan);
+flex-shrink: 0;
+margin-top: 1px;
+}
+
+/* STATUS / LOADING */
+.status-bar {
+font-size: 0.6rem;
+letter-spacing: 2px;
+color: var(–muted);
+text-align: center;
+padding: 8px;
+min-height: 28px;
+}
+
+.loading-dots::after {
+content: ‘’;
+animation: dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes dots {
+0%   { content: ‘’; }
+25%  { content: ‘.’; }
+50%  { content: ‘..’; }
+75%  { content: ‘…’; }
+100% { content: ‘’; }
+}
+
+/* VIX WARNING */
+.vix-warn {
+background: rgba(255,61,87,0.08);
+border: 1px solid rgba(255,61,87,0.3);
+padding: 10px 14px;
+font-size: 0.65rem;
+color: var(–red);
+letter-spacing: 1px;
+margin-bottom: 16px;
+display: none;
+}
+
+.placeholder {
+color: var(–muted);
+font-family: ‘Bebas Neue’, sans-serif;
+}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <h1>SPY 0DTE</h1>
+  <div class="subtitle">Morning Signal Scanner</div>
+  <div class="timestamp" id="timestamp">— tap scan to run —</div>
+</div>
+
+<button class="scan-btn" id="scanBtn" onclick="runScan()">▶ RUN MORNING SCAN</button>
+
+<div class="status-bar" id="statusBar">Ready</div>
+
+<!-- SCORE -->
+
+<div class="score-box">
+  <div class="score-label">Signal Score</div>
+  <div class="score-number neutral placeholder" id="scoreNum">—</div>
+  <div class="score-verdict weak" id="scoreVerdict">AWAITING SCAN</div>
+  <div class="score-direction" id="scoreDir">Need ≥ +2 (CALL) or ≤ -2 (PUT)</div>
+</div>
+
+<!-- VIX WARNING -->
+
+<div class="vix-warn" id="vixWarn">⚠ VIX > 30 — HARD STOP. NO TRADE TODAY.</div>
+
+<!-- MARKET DATA -->
+
+<div class="section-title">Market Data</div>
+<div class="data-grid" id="dataGrid">
+  <div class="data-card">
+    <div class="label">SPY</div>
+    <div class="value placeholder" id="spy-val">—</div>
+    <div class="change flat" id="spy-chg">—</div>
+  </div>
+  <div class="data-card">
+    <div class="label">VIX</div>
+    <div class="value placeholder" id="vix-val">—</div>
+    <div class="change flat" id="vix-chg">—</div>
+    <div class="sig-badge" id="vix-sig"></div>
+  </div>
+  <div class="data-card">
+    <div class="label">S&P Futures</div>
+    <div class="value placeholder" id="fut-val">—</div>
+    <div class="change flat" id="fut-chg">—</div>
+    <div class="sig-badge" id="fut-sig"></div>
+  </div>
+  <div class="data-card">
+    <div class="label">Gold</div>
+    <div class="value placeholder" id="gold-val">—</div>
+    <div class="change flat" id="gold-chg">—</div>
+    <div class="sig-badge" id="gold-sig"></div>
+  </div>
+  <div class="data-card">
+    <div class="label">Oil (WTI)</div>
+    <div class="value placeholder" id="oil-val">—</div>
+    <div class="change flat" id="oil-chg">—</div>
+    <div class="sig-badge" id="oil-sig"></div>
+  </div>
+  <div class="data-card">
+    <div class="label">NQ Futures</div>
+    <div class="value placeholder" id="nq-val">—</div>
+    <div class="change flat" id="nq-chg">—</div>
+    <div class="sig-badge" id="nq-sig"></div>
+  </div>
+</div>
+
+<!-- ORDER TICKET -->
+
+<div class="section-title">Order Ticket</div>
+<div class="order-ticket">
+  <div class="ticket-header">📋 ThinkorSwim Setup</div>
+  <div class="ticket-row">
+    <span class="tkey">Symbol</span>
+    <span class="tval">SPY — 0DTE</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Strategy</span>
+    <span class="tval" id="ot-strategy">—</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Direction</span>
+    <span class="tval" id="ot-dir">—</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">SPY Price</span>
+    <span class="tval" id="ot-spy">—</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Buy Leg</span>
+    <span class="tval buy" id="ot-buy">—</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Sell Leg</span>
+    <span class="tval sell" id="ot-sell">—</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Contracts</span>
+    <span class="tval">2</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Width</span>
+    <span class="tval">$5 wide</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Entry Time</span>
+    <span class="tval">8:45 AM CST</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Take Profit</span>
+    <span class="tval tp" id="ot-tp">75% of credit</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Stop Loss</span>
+    <span class="tval sell">25% of credit</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Hard Exit</span>
+    <span class="tval">9:00 AM CST</span>
+  </div>
+</div>
+
+<!-- DAILY REMINDERS -->
+
+<div class="section-title">Daily Checklist</div>
+<div class="rules-box">
+  <div class="rule-item"><span class="dot">▸</span><span>Score ≥ +2 for CALL, ≤ -2 for PUT</span></div>
+  <div class="rule-item"><span class="dot">▸</span><span>VIX must be ≤ 30 (hard stop above)</span></div>
+  <div class="rule-item"><span class="dot">▸</span><span>No major earnings / Fed events today</span></div>
+  <div class="rule-item"><span class="dot">▸</span><span>Enter exactly at 8:45 AM CST</span></div>
+  <div class="rule-item"><span class="dot">▸</span><span>Set OCO: TP + SL immediately on fill</span></div>
+  <div class="rule-item"><span class="dot">▸</span><span>Hard close at 9:00 AM CST — no exceptions</span></div>
+  <div class="rule-item"><span class="dot">▸</span><span>Max 1 trade per day</span></div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+];
+
+const TICKERS = {
+  spy:  { primary: 'SPY',   backup: null },
+  vix:  { primary: '%5EVIX', backup: null },
+  fut:  { primary: 'ES%3DF', backup: 'SPY' },
+  gold: { primary: 'GC%3DF', backup: 'GLD' },
+  oil:  { primary: 'CL%3DF', backup: 'USO' },
+  nq:   { primary: 'NQ%3DF', backup: 'QQQ' }
+};
+
+// ── FETCH ────────────────────────────────────────────────
+async function fetchYahoo(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
+  for (const proxyFn of PROXIES) {
+    try {
+      const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (!meta) continue;
+      const price = meta.regularMarketPrice;
+      const prev  = meta.chartPreviousClose || meta.previousClose;
+      if (!price || !prev) continue;
+      const chgPct = ((price - prev) / prev) * 100;
+      return { price, prev, chgPct, ok: true };
+    } catch { continue; }
+  }
+  return { price: null, prev: null, chgPct: null, ok: false };
+}
+
+async function fetchWithBackup(key) {
+  const { primary, backup } = TICKERS[key];
+  let r = await fetchYahoo(primary);
+  if (!r.ok && backup) r = await fetchYahoo(backup);
+  return r;
+}
+
+// ── SIGNAL LOGIC ─────────────────────────────────────────
+function calcFuturesSignal(chgPct) {
+  if (chgPct === null) return 0;
+  if (chgPct >  0.5)  return  3;
+  if (chgPct >  0.2)  return  2;
+  if (chgPct >  0.05) return  1;
+  if (chgPct < -0.5)  return -3;
+  if (chgPct < -0.2)  return -2;
+  if (chgPct < -0.05) return -1;
+  return 0;
+}
+
+function calcVixSignal(price) {
+  if (price === null) return 0;
+  if (price > 28) return -2;
+  if (price > 20) return -1;
+  if (price < 14) return  1;
+  return 0;
+}
+
+function calcGoldSignal(chgPct) {
+  if (chgPct === null) return 0;
+  if (chgPct >  1.2) return -1;
+  if (chgPct < -0.8) return  1;
+  return 0;
+}
+
+function calcOilSignal(chgPct) {
+  if (chgPct === null) return 0;
+  if (chgPct >  2.5) return -1;
+  if (chgPct < -2.5) return  1;
+  return 0;
+}
+
+// ── UI HELPERS ───────────────────────────────────────────
+function setStatus(msg, loading = false) {
+  const el = document.getElementById('statusBar');
+  el.className = loading ? 'status-bar loading-dots' : 'status-bar';
+  el.textContent = msg;
+}
+
+function fmtPrice(p, decimals = 2) {
+  if (p === null) return 'N/A';
+  return p >= 100 ? p.toFixed(decimals) : p.toFixed(2);
+}
+
+function fmtChg(pct) {
+  if (pct === null) return '—';
+  const sign = pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(2)}%`;
+}
+
+function setCard(id, price, chgPct, sig) {
+  const val = document.getElementById(`${id}-val`);
+  const chg = document.getElementById(`${id}-chg`);
+  const sigEl = document.getElementById(`${id}-sig`);
+
+  val.textContent = price !== null ? fmtPrice(price) : 'N/A';
+  val.classList.remove('placeholder');
+
+  chg.textContent = fmtChg(chgPct);
+  chg.className = 'change ' + (chgPct > 0 ? 'up' : chgPct < 0 ? 'down' : 'flat');
+
+  if (sigEl) {
+    if (sig > 0) {
+      sigEl.textContent = `+${sig}`;
+      sigEl.className = 'sig-badge sig-pos';
+    } else if (sig < 0) {
+      sigEl.textContent = `${sig}`;
+      sigEl.className = 'sig-badge sig-neg';
+    } else {
+      sigEl.className = 'sig-badge sig-zero';
+    }
+  }
+}
+
+function updateOrderTicket(score, spyPrice) {
+  const dir    = document.getElementById('ot-dir');
+  const strat  = document.getElementById('ot-strategy');
+  const buyLeg = document.getElementById('ot-buy');
+  const sellLeg= document.getElementById('ot-sell');
+  const spyEl  = document.getElementById('ot-spy');
+
+  spyEl.textContent = spyPrice !== null ? `$${fmtPrice(spyPrice)}` : '—';
+
+  if (score >= 2 && spyPrice) {
+    const atm = Math.round(spyPrice);
+    strat.textContent = 'Debit Call Spread';
+    dir.textContent = '🟢 BULLISH';
+    dir.className = 'tval buy';
+    buyLeg.textContent  = `Buy  $${atm}C`;
+    sellLeg.textContent = `Sell $${atm + 5}C`;
+  } else if (score <= -2 && spyPrice) {
+    const atm = Math.round(spyPrice);
+    strat.textContent = 'Debit Put Spread';
+    dir.textContent = '🔴 BEARISH';
+    dir.className = 'tval sell';
+    buyLeg.textContent  = `Buy  $${atm}P`;
+    sellLeg.textContent = `Sell $${atm - 5}P`;
+  } else {
+    strat.textContent = '—';
+    dir.textContent = '— NO TRADE —';
+    dir.className = 'tval';
+    buyLeg.textContent  = '—';
+    sellLeg.textContent = '—';
+  }
+}
+
+// ── MAIN SCAN ────────────────────────────────────────────
+async function runScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  setStatus('Fetching market data', true);
+
+  // Fetch all in parallel
+  const [spy, vix, fut, gold, oil, nq] = await Promise.all([
+    fetchWithBackup('spy'),
+    fetchWithBackup('vix'),
+    fetchWithBackup('fut'),
+    fetchWithBackup('gold'),
+    fetchWithBackup('oil'),
+    fetchWithBackup('nq')
+  ]);
+
+  setStatus('Calculating signals...');
+
+  // Signals
+  const sigFut  = calcFuturesSignal(fut.chgPct);
+  const sigVix  = calcVixSignal(vix.price);
+  const sigGold = calcGoldSignal(gold.chgPct);
+  const sigOil  = calcOilSignal(oil.chgPct);
+  const total   = sigFut + sigVix + sigGold + sigOil;
+
+  // Update cards
+  setCard('spy',  spy.price,  spy.chgPct,  0);
+  setCard('vix',  vix.price,  vix.chgPct,  sigVix);
+  setCard('fut',  fut.price,  fut.chgPct,  sigFut);
+  setCard('gold', gold.price, gold.chgPct, sigGold);
+  setCard('oil',  oil.price,  oil.chgPct,  sigOil);
+  setCard('nq',   nq.price,   nq.chgPct,   0);
+
+  // Score display
+  const scoreEl   = document.getElementById('scoreNum');
+  const verdictEl = document.getElementById('scoreVerdict');
+  const dirEl     = document.getElementById('scoreDir');
+  const vixWarn   = document.getElementById('vixWarn');
+
+  scoreEl.textContent = total > 0 ? `+${total}` : `${total}`;
+  scoreEl.className = 'score-number ' + (total >= 2 ? 'positive' : total <= -2 ? 'negative' : 'neutral');
+
+  // VIX hard stop
+  if (vix.price && vix.price > 30) {
+    vixWarn.style.display = 'block';
+    verdictEl.textContent = 'HARD STOP';
+    verdictEl.className = 'score-verdict no-trade';
+    dirEl.textContent = 'VIX > 30 — No trade regardless of score';
+  } else {
+    vixWarn.style.display = 'none';
+    if (total >= 2) {
+      verdictEl.textContent = '✓ TRADE — CALL SPREAD';
+      verdictEl.className = 'score-verdict trade';
+      dirEl.textContent = 'Bullish setup confirmed';
+    } else if (total <= -2) {
+      verdictEl.textContent = '✓ TRADE — PUT SPREAD';
+      verdictEl.className = 'score-verdict trade';
+      dirEl.textContent = 'Bearish setup confirmed';
+    } else {
+      verdictEl.textContent = '✗ NO TRADE';
+      verdictEl.className = 'score-verdict no-trade';
+      dirEl.textContent = `Score ${total} — Need ≥ +2 or ≤ -2`;
+    }
+  }
+
+  // Order ticket
+  updateOrderTicket(total, spy.price);
+
+  // Timestamp
+  const now = new Date();
+  const cst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  const h = cst.getHours(), m = String(cst.getMinutes()).padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  document.getElementById('timestamp').textContent = `Last scan: ${h12}:${m} ${ampm} CST`;
+
+  setStatus(`Done — Score: ${total > 0 ? '+' : ''}${total} | Fut:${sigFut > 0 ? '+' : ''}${sigFut} VIX:${sigVix > 0 ? '+' : ''}${sigVix} Gold:${sigGold > 0 ? '+' : ''}${sigGold} Oil:${sigOil > 0 ? '+' : ''}${sigOil}`);
+
+  btn.disabled = false;
+}
+</script>
+
+</body>
+</html>
