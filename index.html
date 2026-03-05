@@ -314,6 +314,18 @@ display: none;
 color: var(–muted);
 font-family: ‘Bebas Neue’, sans-serif;
 }
+
+.tval.gold { color: var(–gold); }
+
+.value a {
+color: inherit;
+text-decoration: none;
+border-bottom: 1px dashed var(–muted);
+}
+.value a:hover, .value a:active {
+border-bottom-color: var(–cyan);
+color: var(–cyan);
+}
 </style>
 
 </head>
@@ -348,36 +360,36 @@ font-family: ‘Bebas Neue’, sans-serif;
 <div class="data-grid" id="dataGrid">
   <div class="data-card">
     <div class="label">SPY</div>
-    <div class="value placeholder" id="spy-val">—</div>
+    <div class="value placeholder" id="spy-val"><a href="https://finance.yahoo.com/quote/SPY" target="_blank" id="spy-link">—</a></div>
     <div class="change flat" id="spy-chg">—</div>
   </div>
   <div class="data-card">
     <div class="label">VIX</div>
-    <div class="value placeholder" id="vix-val">—</div>
+    <div class="value placeholder" id="vix-val"><a href="https://finance.yahoo.com/quote/%5EVIX" target="_blank" id="vix-link">—</a></div>
     <div class="change flat" id="vix-chg">—</div>
     <div class="sig-badge" id="vix-sig"></div>
   </div>
   <div class="data-card">
     <div class="label">S&P Futures</div>
-    <div class="value placeholder" id="fut-val">—</div>
+    <div class="value placeholder" id="fut-val"><a href="https://finance.yahoo.com/quote/ES%3DF" target="_blank" id="fut-link">—</a></div>
     <div class="change flat" id="fut-chg">—</div>
     <div class="sig-badge" id="fut-sig"></div>
   </div>
   <div class="data-card">
     <div class="label">Gold</div>
-    <div class="value placeholder" id="gold-val">—</div>
+    <div class="value placeholder" id="gold-val"><a href="https://finance.yahoo.com/quote/GC%3DF" target="_blank" id="gold-link">—</a></div>
     <div class="change flat" id="gold-chg">—</div>
     <div class="sig-badge" id="gold-sig"></div>
   </div>
   <div class="data-card">
     <div class="label">Oil (WTI)</div>
-    <div class="value placeholder" id="oil-val">—</div>
+    <div class="value placeholder" id="oil-val"><a href="https://finance.yahoo.com/quote/CL%3DF" target="_blank" id="oil-link">—</a></div>
     <div class="change flat" id="oil-chg">—</div>
     <div class="sig-badge" id="oil-sig"></div>
   </div>
   <div class="data-card">
     <div class="label">NQ Futures</div>
-    <div class="value placeholder" id="nq-val">—</div>
+    <div class="value placeholder" id="nq-val"><a href="https://finance.yahoo.com/quote/NQ%3DF" target="_blank" id="nq-link">—</a></div>
     <div class="change flat" id="nq-chg">—</div>
     <div class="sig-badge" id="nq-sig"></div>
   </div>
@@ -419,6 +431,14 @@ font-family: ‘Bebas Neue’, sans-serif;
   <div class="ticket-row">
     <span class="tkey">Width</span>
     <span class="tval">$5 wide</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Est. Debit</span>
+    <span class="tval gold" id="ot-debit">— per spread</span>
+  </div>
+  <div class="ticket-row">
+    <span class="tkey">Total Cost</span>
+    <span class="tval gold" id="ot-total">— (2 contracts)</span>
   </div>
   <div class="ticket-row">
     <span class="tkey">Entry Time</span>
@@ -552,7 +572,9 @@ function setCard(id, price, chgPct, sig) {
   const chg = document.getElementById(`${id}-chg`);
   const sigEl = document.getElementById(`${id}-sig`);
 
-  val.textContent = price !== null ? fmtPrice(price) : 'N/A';
+  const link = document.getElementById(`${id}-link`);
+  const displayVal = price !== null ? fmtPrice(price) : 'N/A';
+  if (link) { link.textContent = displayVal; } else { val.textContent = displayVal; }
   val.classList.remove('placeholder');
 
   chg.textContent = fmtChg(chgPct);
@@ -571,14 +593,34 @@ function setCard(id, price, chgPct, sig) {
   }
 }
 
-function updateOrderTicket(score, spyPrice) {
-  const dir    = document.getElementById('ot-dir');
-  const strat  = document.getElementById('ot-strategy');
-  const buyLeg = document.getElementById('ot-buy');
-  const sellLeg= document.getElementById('ot-sell');
-  const spyEl  = document.getElementById('ot-spy');
+function calcDebitRange(vixPrice) {
+  // VIX-based estimate for ATM $5-wide 0DTE debit spread
+  // Higher VIX = wider bid/ask and higher premiums
+  let low, high;
+  if (vixPrice === null)      { low = 1.20; high = 1.80; }
+  else if (vixPrice >= 28)   { low = 1.80; high = 2.60; }
+  else if (vixPrice >= 22)   { low = 1.50; high = 2.10; }
+  else if (vixPrice >= 16)   { low = 1.20; high = 1.80; }
+  else                        { low = 0.90; high = 1.40; }
+  return { low, high };
+}
+
+function updateOrderTicket(score, spyPrice, vixPrice) {
+  const dir     = document.getElementById('ot-dir');
+  const strat   = document.getElementById('ot-strategy');
+  const buyLeg  = document.getElementById('ot-buy');
+  const sellLeg = document.getElementById('ot-sell');
+  const spyEl   = document.getElementById('ot-spy');
+  const debitEl = document.getElementById('ot-debit');
+  const totalEl = document.getElementById('ot-total');
 
   spyEl.textContent = spyPrice !== null ? `$${fmtPrice(spyPrice)}` : '—';
+
+  const { low, high } = calcDebitRange(vixPrice);
+  const totalLow  = (low  * 2 * 100).toFixed(0);
+  const totalHigh = (high * 2 * 100).toFixed(0);
+  debitEl.textContent = `$${low.toFixed(2)}–$${high.toFixed(2)} per spread`;
+  totalEl.textContent = `$${totalLow}–$${totalHigh} (2 contracts)`;
 
   if (score >= 2 && spyPrice) {
     const atm = Math.round(spyPrice);
@@ -669,7 +711,7 @@ async function runScan() {
   }
 
   // Order ticket
-  updateOrderTicket(total, spy.price);
+  updateOrderTicket(total, spy.price, vix.price);
 
   // Timestamp
   const now = new Date();
